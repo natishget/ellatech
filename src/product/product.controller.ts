@@ -8,8 +8,10 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productService.create(createProductDto);
+  create(@Body() body: any) {
+    const { userId, ...payload } = body;
+    const dto = payload as CreateProductDto;
+    return this.productService.create(dto, userId);
   }
 
   @Get()
@@ -23,8 +25,10 @@ export class ProductController {
   }
 
   @Put('/adjust/:id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productService.update(+id, updateProductDto);
+  update(@Param('id') id: string, @Body() body: any) {
+    const { userId, ...payload } = body;
+    const dto = payload as UpdateProductDto;
+    return this.productService.update(+id, dto, userId);
   }
 
   // @Delete(':id')
