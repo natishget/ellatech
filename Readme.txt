@@ -28,3 +28,7 @@ docker-compose logs -f api
 docker-compose down
 
 
+### to check docker container status 
+docker-compose ps
+
+
