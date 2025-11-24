@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database Service
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      # These variables create the default user and database
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - "5433:5432"
+    volumes:
+      # Persist data across container restarts
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. NestJS API Service
+  api:
+    build:
+      context: . # Build from the current directory
+      dockerfile: Dockerfile # Specify the Dockerfile name if different
+      target: build # Use your development stage defined in Dockerfile (optional)
+    container_name: nestjs_api
+    env_file:
+      - .env # Load environment variables from .env file
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres_db # Ensure DB starts before API
+    volumes:
+      - .:/usr/src/app     # <-- changed to match Dockerfile WORKDIR
+      - /usr/src/app/node_modules
+    command: pnpm run start:dev # Run the development server
+
+volumes:
+  postgres_data:
