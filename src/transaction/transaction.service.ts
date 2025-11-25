@@ -4,6 +4,7 @@ import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Transaction } from './entities/transaction.entity';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class TransactionService {
@@ -14,9 +15,14 @@ export class TransactionService {
   ) {}
 
   async create(createTransactionDto: CreateTransactionDto) {
-    const transaction = this.transactionRepository.create(createTransactionDto);
-    const response = await this.transactionRepository.save(transaction);
-    return true;
+    try{
+      const transaction = this.transactionRepository.create(createTransactionDto);
+      const response = await this.transactionRepository.save(transaction);
+      return true;
+      
+    } catch(error) {
+      throw new BadRequestException('Error creating transaction: ' + error.message);
+    }
   }
 
   async findAll() {
