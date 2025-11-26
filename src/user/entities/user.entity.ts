@@ -1,5 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn} from "typeorm";
 import { Transaction } from "../../transaction/entities/transaction.entity";
+import { Exclude } from 'class-transformer';
 
 @Entity({name: "user"})
 export class User {
@@ -10,6 +11,7 @@ export class User {
     @Column({ type: 'varchar', length: 255, unique: true })
     username: string;
     
+    @Exclude()
     @Column({ type: 'varchar', length: 255 })
     password: string;
 
