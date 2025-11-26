@@ -20,17 +20,17 @@ export class ProductService {
   async create(createProductDto: CreateProductDto, userId: number): Promise<Product> {
     const queryRunner = this.dataSource.createQueryRunner();
     
-    // 1. Establish a connection and start transaction
+    // establish a connection and start transaction
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // --- 2. Step A: Create and Save Product (using the transaction's manager) ---
+      // Create and Save Product (using the transaction's manager) ---
       const product = this.productRepository.create(createProductDto);
       // Use the queryRunner.manager to save the product within the transaction
       const savedProduct = await queryRunner.manager.save(Product, product);
 
-      // --- 3. Step B: Prepare Transaction Record ---
+      // prepare transaction record
       const transactionDetails = {
         productId: savedProduct.id,
         userId: userId,
@@ -39,7 +39,7 @@ export class ProductService {
         description: 'Initial stock added on product creation',
       };
 
-      // --- 4. Step C: Create Transaction (using the same transaction's manager) ---
+      // create transaction (using the same transaction's manager)
       // NOTE: You must update your TransactionService.create to accept the manager
       // OR, for simplicity, use the manager directly here.
       
@@ -50,58 +50,38 @@ export class ProductService {
         throw new InternalServerErrorException('Database failed to create transaction record.');
       }
       
-      // --- 5. Commit Transaction ---
+      // commit transaction
       await queryRunner.commitTransaction();
 
       return savedProduct;
 
     } catch (error) {
-      // --- 6. Rollback Transaction on ANY error ---
       await queryRunner.rollbackTransaction();
       
-      // Re-throw the original error after cleanup
       if (error instanceof InternalServerErrorException) {
           throw error; // Re-throw the specific error
       }
       throw new BadRequestException('Error creating product or logging transaction: ' + error.message);
       
     } finally {
-      // --- 7. Release the QueryRunner ---
       await queryRunner.release();
     }
   }
-
-  // async create(createProductDto: CreateProductDto, userId: number) {
-  //   try{
-  //     const product = this.productRepository.create(createProductDto);
-  //     console.log('Created product entity:', product);
-  //     const response = await this.productRepository.save(product);
-  //     const transaction = {
-  //       productId: response.id,
-  //       userId: userId,
-  //       quantityChange: response.stockQuantity,
-  //       type: 'PURCHASE',
-  //       description: 'Initial stock added on product creation',
-  //     };
-  //     const transactionResponse = await this.transactionService.create(transaction);
-  
-  //     if(!transactionResponse) {
-  //       throw new Error('Transaction creation failed');
-  //     }
-      
-  //     return response;
-
-  //   } catch(error) {
-  //     throw new BadRequestException('Error creating product: ' + error.message);
-  //   }
-  // }
 
   async findAll() {
     return await this.productRepository.find();
   }
 
   async findOne(id: number) {
-    return await this.productRepository.findOne({ where: { id } });
+    const idNum = typeof id === 'string' ? parseInt(id, 10) : id;
+      if (Number.isNaN(idNum)) {
+        throw new BadRequestException('Invalid product id');
+      }
+    const product = await this.productRepository.findOne({ where: { id } });
+    if (!product) {
+      throw new NotFoundException(`Product ${id} not found`);
+    }
+    return product;
   }
 
 
@@ -118,7 +98,7 @@ export class ProductService {
         throw new BadRequestException('Invalid product id');
       }
       
-      // 2. Find the existing product using the transaction's manager
+      // Find the existing product using the transaction's manager
       // Ensure the find operation uses locking if supported and necessary for high concurrency
       const product = await queryRunner.manager.findOne(Product, { 
         where: { id: idNum } 
@@ -179,37 +159,6 @@ export class ProductService {
     }
   }
 
-  // async update(id: number | string, updateProductDto: UpdateProductDto, userId: number) {
-  //   try{
-  //     const idNum = typeof id === 'string' ? parseInt(id, 10) : id;
-  //     if (Number.isNaN(idNum)) throw new BadRequestException('Invalid product id');
-  
-  //     const product = await this.findOne(idNum);
-  
-  //     if (!product) throw new NotFoundException(`Product ${idNum} not found`);
-  //     const response = await this.productRepository.save(product);
-  
-  //     if (updateProductDto.stockQuantity !== undefined) {
-  //       const quantityChange = updateProductDto.stockQuantity - product.stockQuantity;
-  //       const transaction = {
-  //         productId: response.id,
-  //         userId: userId,
-  //         quantityChange,
-  //         type: 'ADJUSTMENT',
-  //         description: 'Stock quantity adjusted',
-  //       };
-  //       const transactionResponse = await this.transactionService.create(transaction);
-  
-  //       if (!transactionResponse) {
-  //         throw new Error('Transaction creation failed');
-  //       }
-  //     }
-      
-  //     return response;
-  //   } catch(error) {
-  //     throw new BadRequestException('Error updating product: ' + error.message);
-  //   }
-  // }
 
   // remove(id: number) {
   //   return `This action removes a #${id} product`;
